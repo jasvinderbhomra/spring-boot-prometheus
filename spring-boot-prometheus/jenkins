@@ -33,7 +33,7 @@ pipeline {
 
         stage('Build') {
             steps {
-                dir('gmp-promet_v1') {
+                dir('spring-boot-prometheus') {
                     sh 'mvn clean install'
                 }
             }
