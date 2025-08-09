@@ -1,7 +1,7 @@
 replicaCount: 1
 
 image:
-  repository: jasvinderbhomra/spring-boot-prometheus
+  repository: jasvinderbhomra/spring-boot-prometheus-0.0.1-snapshot
   tag: latest  # Will be overridden via jenkins with --set
   pullPolicy: IfNotPresent
 

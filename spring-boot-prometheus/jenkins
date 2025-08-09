@@ -7,7 +7,7 @@ pipeline {
     }
 
     environment {
-        DOCKER_IMAGE = 'jasvinderbhomra/spring-boot-prometheus'
+        DOCKER_IMAGE = 'jasvinderbhomra/spring-boot-prometheus-0.0.1-snapshot'
         K8S_DEPLOY_FILE = 'k8s-deployment.yaml'
         KUBECONFIG_CREDENTIAL_ID = 'kubeconfig-secret-id' // Optional if not using pre-set config
         DOCKER_CREDENTIALS_ID = 'docker-hub-token'
