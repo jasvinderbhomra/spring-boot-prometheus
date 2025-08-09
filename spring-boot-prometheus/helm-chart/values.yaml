@@ -1,0 +1,34 @@
+replicaCount: 1
+
+image:
+  repository: jasvinderbhomra/spring-boot-prometheus
+  tag: latest  # Will be overridden via jenkins with --set
+  pullPolicy: IfNotPresent
+
+service:
+  type: LoadBalancer
+  port: 8080
+
+virtualService:
+  host:  spring-boot-prometheus.com
+
+# resources:
+#   limits:
+#     cpu: 250m
+#     memory: 250Mi
+#   requests:
+#     cpu: 250m
+#     memory: 250Mi
+
+livenessProbe:
+  path: /actuator/health
+  port: 8080
+  initialDelaySeconds: 30
+  periodSeconds: 15
+
+readinessProbe:
+  path: /actuator/health
+  port: 8080
+  initialDelaySeconds: 10
+  periodSeconds: 5
+

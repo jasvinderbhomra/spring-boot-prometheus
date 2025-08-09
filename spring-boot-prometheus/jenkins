@@ -1,0 +1,151 @@
+pipeline {
+    agent any
+
+    tools {
+        maven 'Maven 3'
+        dockerTool 'Docker 26'
+    }
+
+    environment {
+        DOCKER_IMAGE = 'jasvinderbhomra/spring-boot-prometheus'
+        K8S_DEPLOY_FILE = 'k8s-deployment.yaml'
+        KUBECONFIG_CREDENTIAL_ID = 'kubeconfig-secret-id' // Optional if not using pre-set config
+        DOCKER_CREDENTIALS_ID = 'docker-hub-token'
+        IMAGE_TAG = "build-${env.BUILD_NUMBER}"
+        HELM_CHART_PATH = "helm-chart"
+        HELM_RELEASE_NAME = 'spring-boot-prometheus'
+        APP_NAME = 'spring-boot-prometheusp'
+        GOOGLE_APPLICATION_CREDENTIALS = credentials('gcp-service-account-key')
+        PROJECT_ID = 'able-cogency-468223-e4'
+        CLUSTER_NAME = 'cluster-1'
+        CLUSTER_ZONE = 'us-central1-c'
+        PATH = "/opt/google-cloud-sdk/bin:$PATH"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git url: 'https://github.com/jasvinderbhomra/spring-boot-prometheus.git',
+                    branch: 'main',
+                    credentialsId: 'jbhomra_github'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                dir('gmp-promet_v1') {
+                    sh 'mvn clean install'
+                }
+            }
+        }
+
+        stage('Login to Docker Hub') {
+            steps {
+                script {
+                    docker.withRegistry('https://index.docker.io/v1/', "${DOCKER_CREDENTIALS_ID}") {
+                        echo "Successfully logged in to Docker Hub"
+                    }
+                }
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                script {
+                    def image = docker.build("${DOCKER_IMAGE}:${IMAGE_TAG}", 'spring-boot-prometheus')
+                    echo "Image built: ${image}"
+                }
+            }
+        }
+
+        stage('Docker Push') {
+            steps {
+                script {
+                    docker.withRegistry('https://index.docker.io/v1/', "${DOCKER_CREDENTIALS_ID}") {
+                        docker.image("${DOCKER_IMAGE}:${IMAGE_TAG}").push()
+                    }
+                }
+            }
+        }
+
+        // Uncomment and update as needed for Kubernetes deployment
+        /*
+        stage('Deploy to Kubernetes') {
+            steps {
+                dir('spring-boot-prometheus') {
+                    withCredentials([file(credentialsId: "${KUBECONFIG_CREDENTIAL_ID}", variable: 'KUBECONFIG')]) {
+                        sh '''
+                            echo "Current directory contents:"
+                            ls -la
+                            echo "Deploying to Kubernetes..."
+                            kubectl apply -f ${K8S_DEPLOY_FILE}
+                        '''
+                    }
+                }
+            }
+        }
+        */
+
+        // Optional Helm deploy with GKE or Minikube
+        /*
+        stage('Helm Deploy') {
+            steps {
+                dir('spring-boot-prometheus') {
+                    withCredentials([file(credentialsId: "${KUBECONFIG_CREDENTIAL_ID}", variable: 'KUBECONFIG')]) {
+                        sh '''
+                            helm upgrade --install ${HELM_RELEASE_NAME} ${HELM_CHART_PATH} \
+                                --set image.repository=${DOCKER_IMAGE} \
+                                --set image.tag=${IMAGE_TAG}
+                        '''
+                    }
+                }
+            }
+        }
+        */
+
+        stage('Auth with gcloud') {
+            steps {
+                withCredentials([file(credentialsId: 'gcp-service-account-key', variable: 'GCLOUD_KEY')]) {
+                sh '''
+                    gcloud auth activate-service-account --key-file=$GCLOUD_KEY
+                    gcloud info
+                    gcloud config set project $PROJECT_ID
+                    gcloud container clusters get-credentials $CLUSTER_NAME --zone $CLUSTER_ZONE --project able-cogency-468223-e4
+                '''
+                }
+            }
+        }
+        // stage('Set up GKE Access') {
+        //     steps {
+        //         sh '''
+        //             echo $GOOGLE_APPLICATION_CREDENTIALS > gcp-key.json
+        //             gcloud auth activate-service-account --key-file=gcp-key.json
+        //             gcloud config set project $PROJECT_ID
+        //             gcloud container clusters get-credentials $CLUSTER_NAME --zone $CLUSTER_ZONE
+        //         '''
+        //     }
+        // }
+
+        stage('Deploy with Helm') {
+            steps {
+                dir('spring-boot-prometheus') {
+                    sh '''
+
+                        # Create the namespace if it doesn't exist
+                        kubectl get namespace namespace2 || kubectl create namespace namespace2
+                    
+                         # Label the namespace for Istio automatic sidecar injection
+                         # kubectl label namespace namespace1 istio-injection=enabled --overwrite
+
+
+                        helm upgrade --install ${HELM_RELEASE_NAME} ${HELM_CHART_PATH} \
+                            --namespace namespace2 \
+                            --set image.repository=${DOCKER_IMAGE} \
+                            --set image.tag=${IMAGE_TAG}
+                    '''
+                }
+            }
+        }   
+
+    }
+}
