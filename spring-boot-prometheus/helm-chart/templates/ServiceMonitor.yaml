@@ -1,18 +1,18 @@
-apiVersion: monitoring.coreos.com/v1
-kind: ServiceMonitor
-metadata:
-  name: spring-boot-servicemonitor
-  labels:
-    release: prometheus-operator   # This label should match the label selector of your Prometheus installation
-spec:
-  selector:
-    matchLabels:
-      app: helm-chart
-  namespaceSelector:
-    matchNames:
-      - default    # Change if your service is in another namespace
-  endpoints:
-    - port: http        # matches port name on your Service
-      path: /actuator/prometheus
-      interval: 30s
-      scheme: http
+#apiVersion: monitoring.coreos.com/v1
+#kind: ServiceMonitor
+#metadata:
+#  name: spring-boot-servicemonitor
+#  labels:
+#    release: prometheus-operator   # This label should match the label selector of your Prometheus installation
+#spec:
+#  selector:
+#    matchLabels:
+#      app: helm-chart
+#  namespaceSelector:
+#    matchNames:
+#      - default    # Change if your service is in another namespace
+#  endpoints:
+#    - port: http        # matches port name on your Service
+#      path: /actuator/prometheus
+#      interval: 30s
+#      scheme: http
