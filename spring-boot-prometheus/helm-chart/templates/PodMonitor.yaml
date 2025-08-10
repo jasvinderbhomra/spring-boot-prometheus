@@ -1,13 +1,40 @@
+{{/*
+  Detect if the CRD has the new 'podMetricsEndpoints' field.
+  We check the CRD definition from the cluster via Helm's 'lookup' function.
+  If CRD not found (Helm dry-run, etc.), we default to new field.
+  */}}
+  {{- $crd := (lookup "apiextensions.k8s.io/v1" "CustomResourceDefinition" "podmonitorings.monitoring.googleapis.com" "") -}}
+  {{- $hasNewField := false -}}
+  {{- if $crd }}
+  {{- range $crd.spec.versions }}
+  {{- if eq .name "v1" }}
+  {{- if .schema.openAPIV3Schema.properties.spec.properties.podMetricsEndpoints }}
+  {{- $hasNewField = true -}}
+  {{- end }}
+  {{- end }}
+  {{- end }}
+  {{- else }}
+  {{/* If we can't detect, default to new schema */}}
+  {{- $hasNewField = true -}}
+  {{- end }}
+
 apiVersion: monitoring.googleapis.com/v1
 kind: PodMonitoring
 metadata:
-  name: spring-boot-prometheus-monitor
-  namespace: namespace2
+  name: {{ include "helm-chart.fullname" . }}-monitor
+  namespace: {{ .Release.Namespace }}
 spec:
   selector:
     matchLabels:
-      app: helm-chart  # matches your Deployment label
+      app: {{ include "helm-chart.name" . }}
+  {{- if $hasNewField }}
   podMetricsEndpoints:
     - port: http
       path: /actuator/prometheus
       interval: 30s
+  {{- else }}
+  endpoints:
+    - port: http
+      path: /actuator/prometheus
+      interval: 30s
+  {{- end }}
