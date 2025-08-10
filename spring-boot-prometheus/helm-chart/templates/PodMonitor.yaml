@@ -6,8 +6,8 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: helm-chart  # use the same label as in your deployment
-  endpoints:
+      app: helm-chart  # matches your Deployment label
+  podMetricsEndpoints:
     - port: http
       path: /actuator/prometheus
       interval: 30s
